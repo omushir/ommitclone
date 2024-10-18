@@ -1,15 +1,35 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { DragDropContext } from 'react-beautiful-dnd';
 import BlockPalette from "./components/BlockPalette";
 import ScriptArea from "./components/ScriptArea";
 import Sprite from "./components/Sprite";
 
+// Add this array of colors and shapes
+const spriteStyles = [
+  { color: 'blue', shape: 'circle' },
+  { color: 'red', shape: 'square' },
+  { color: 'green', shape: 'triangle' },
+  { color: 'yellow', shape: 'diamond' },
+  { color: 'purple', shape: 'pentagon' },
+];
+
 function App() {
   const [sprites, setSprites] = useState([
-    { id: 'sprite1', name: 'Sprite 1', x: 200, y: 200, direction: 90, scripts: [] }
+    { 
+      id: 'sprite1', 
+      name: 'Sprite 1', 
+      x: 200, 
+      y: 200, 
+      direction: 90, 
+      scripts: [],
+      color: spriteStyles[0].color,
+      shape: spriteStyles[0].shape,
+      velocity: { x: 0, y: 0 }  // Initial velocity set to 0
+    }
   ]);
   const [selectedSprite, setSelectedSprite] = useState('sprite1');
   const [isPlaying, setIsPlaying] = useState(false);
+  const spriteAreaRef = useRef(null);
 
   const addScript = (spriteId, newScript) => {
     setSprites(prevSprites => prevSprites.map(sprite =>
@@ -52,13 +72,17 @@ function App() {
 
   const addNewSprite = () => {
     const newSpriteId = `sprite${sprites.length + 1}`;
+    const styleIndex = sprites.length % spriteStyles.length;
     setSprites([...sprites, {
       id: newSpriteId,
       name: `Sprite ${sprites.length + 1}`,
       x: Math.random() * 400,
       y: Math.random() * 400,
       direction: 90,
-      scripts: []
+      scripts: [],
+      color: spriteStyles[styleIndex].color,
+      shape: spriteStyles[styleIndex].shape,
+      velocity: { x: 2, y: 0 }  // Initial velocity
     }]);
     setSelectedSprite(newSpriteId);
   };
@@ -76,9 +100,114 @@ function App() {
   };
 
   const handlePlayStop = () => {
-    console.log('Play/Stop button clicked');
     setIsPlaying(prev => !prev);
+    if (!isPlaying) {
+      // Start all sprites when play is pressed
+      setSprites(prevSprites => prevSprites.map(sprite => ({
+        ...sprite,
+        velocity: { x: 0, y: 0 } // Reset velocity, it will be set by scripts
+      })));
+    } else {
+      // Stop all sprites when stop is pressed
+      setSprites(prevSprites => prevSprites.map(sprite => ({
+        ...sprite,
+        velocity: { x: 0, y: 0 }
+      })));
+    }
   };
+
+  const handleCollisionsAndBounces = useCallback(() => {
+    if (!isPlaying || !spriteAreaRef.current) return;
+
+    const spriteAreaRect = spriteAreaRef.current.getBoundingClientRect();
+    const containerWidth = spriteAreaRect.width;
+    const containerHeight = spriteAreaRect.height;
+
+    setSprites(prevSprites => {
+      const newSprites = [...prevSprites];
+
+      for (let i = 0; i < newSprites.length; i++) {
+        const sprite = newSprites[i];
+        
+        if (sprite.scripts && sprite.scripts.length > 0) {
+          let { x, y, direction, velocity } = sprite;
+          const spriteSize = 40; // Assuming sprite size is 40px
+
+          // Handle edge bounces
+          if (x <= 0 || x >= containerWidth - spriteSize) {
+            velocity.x = -velocity.x;
+            direction = 180 - direction;
+          }
+          if (y <= 0 || y >= containerHeight - spriteSize) {
+            velocity.y = -velocity.y;
+            direction = 360 - direction;
+          }
+
+          // Update position based on velocity
+          x += velocity.x;
+          y += velocity.y;
+
+          // Ensure sprite stays within bounds
+          x = Math.max(0, Math.min(x, containerWidth - spriteSize));
+          y = Math.max(0, Math.min(y, containerHeight - spriteSize));
+
+          // Normalize direction
+          direction = (direction + 360) % 360;
+
+          // Check collisions with other sprites
+          for (let j = 0; j < newSprites.length; j++) {
+            if (i !== j && newSprites[j].scripts && newSprites[j].scripts.length > 0) {
+              const otherSprite = newSprites[j];
+              const dx = otherSprite.x - x;
+              const dy = otherSprite.y - y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < spriteSize) {
+                // Collision detected, reverse directions
+                direction = (direction + 180) % 360;
+                otherSprite.direction = (otherSprite.direction + 180) % 360;
+
+                // Reverse velocities
+                velocity.x = -velocity.x;
+                velocity.y = -velocity.y;
+                otherSprite.velocity.x = -otherSprite.velocity.x;
+                otherSprite.velocity.y = -otherSprite.velocity.y;
+
+                // Move sprites apart to prevent sticking
+                const angle = Math.atan2(dy, dx);
+                const separationDistance = spriteSize - distance;
+                x -= (separationDistance * Math.cos(angle)) / 2;
+                y -= (separationDistance * Math.sin(angle)) / 2;
+                otherSprite.x += (separationDistance * Math.cos(angle)) / 2;
+                otherSprite.y += (separationDistance * Math.sin(angle)) / 2;
+              }
+            }
+          }
+
+          // Update sprite properties
+          Object.assign(sprite, { x, y, direction, velocity });
+        }
+      }
+
+      return newSprites;
+    });
+  }, [isPlaying]);
+
+  useEffect(() => {
+    let animationFrameId;
+    if (isPlaying) {
+      const animate = () => {
+        handleCollisionsAndBounces();
+        animationFrameId = requestAnimationFrame(animate);
+      };
+      animationFrameId = requestAnimationFrame(animate);
+    }
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isPlaying, handleCollisionsAndBounces]);
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -124,7 +253,10 @@ function App() {
               sprite={sprites.find(s => s.id === selectedSprite)}
               updateSprite={updateSprite}
             />
-            <div className="w-1/2 relative bg-gray-100 border-l border-gray-300">
+            <div 
+              ref={spriteAreaRef}
+              className="w-1/2 relative bg-gray-100 border-l border-gray-300"
+            >
               {sprites.map(sprite => (
                 <Sprite
                   key={sprite.id}
