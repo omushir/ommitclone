@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { DragDropContext } from 'react-beautiful-dnd';
 import BlockPalette from "./components/BlockPalette";
 import ScriptArea from "./components/ScriptArea";
@@ -19,11 +19,11 @@ function App() {
     ));
   };
 
-  const updateSprite = (id, updatedProperties) => {
+  const updateSprite = useCallback((id, updatedProperties) => {
     setSprites(prevSprites => prevSprites.map(sprite => 
       sprite.id === id ? { ...sprite, ...updatedProperties } : sprite
     ));
-  };
+  }, []);
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -75,6 +75,11 @@ function App() {
     }
   };
 
+  const handlePlayStop = () => {
+    console.log('Play/Stop button clicked');
+    setIsPlaying(prev => !prev);
+  };
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex h-screen">
@@ -109,7 +114,7 @@ function App() {
             </div>
             <button
               className="bg-green-500 text-white px-4 py-2 rounded"
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={handlePlayStop}
             >
               {isPlaying ? 'Stop' : 'Play'}
             </button>
