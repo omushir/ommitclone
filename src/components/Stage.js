@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sprite from './Sprite';
 
-const Stage = ({ sprites, isPlaying, updateSprite }) => {
+const Stage = () => {
+  const [executionMode, setExecutionMode] = useState('forever');
+  // ... other state and logic ...
+
   return (
-    <div className="w-96 h-96 bg-white border-2 border-gray-300 relative overflow-hidden">
-      {sprites.map(sprite => (
-        <Sprite key={sprite.id} {...sprite} isPlaying={isPlaying} updateSprite={updateSprite} />
-      ))}
+    <div className="stage">
+      {/* ... other components ... */}
+      <div>
+        <button onClick={() => setExecutionMode('once')}>Run Once</button>
+        <button onClick={() => setExecutionMode('forever')}>Run Forever</button>
+      </div>
+      <Sprite
+        // ... other props ...
+        executionMode={executionMode}
+      />
     </div>
   );
 };

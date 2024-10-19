@@ -1,7 +1,7 @@
 import React from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 
-const ScriptArea = ({ sprite, updateSprite }) => {
+const ScriptArea = ({ sprite, updateSprite, executeScript }) => {
   const updateScriptParams = (scriptId, newParams) => {
     const updatedScripts = sprite.scripts.map(script =>
       script.id === scriptId ? { ...script, params: { ...script.params, ...newParams } } : script
@@ -91,12 +91,13 @@ const ScriptArea = ({ sprite, updateSprite }) => {
           >
             {sprite.scripts.map((script, index) => (
               <Draggable key={script.id} draggableId={`script-${script.id}`} index={index}>
-                {(provided) => (
+                {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     className="p-2 mb-2 bg-blue-500 text-white rounded cursor-move flex justify-between items-center"
+                    onDragStart={() => executeScript(sprite.id, script)}
                   >
                     <div className="flex-1">
                       {renderScriptBlock(script)}
