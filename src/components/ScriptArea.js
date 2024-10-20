@@ -1,123 +1,144 @@
+// Import necessary dependencies
 import React from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 
-const ScriptArea = ({ sprite, updateSprite, executeScript }) => {
-  const updateScriptParams = (scriptId, newParams) => {
-    const updatedScripts = sprite.scripts.map(script =>
-      script.id === scriptId ? { ...script, params: { ...script.params, ...newParams } } : script
-    );
-    updateSprite(sprite.id, { scripts: updatedScripts });
+// Define block colors for different script types
+const blockColors = {
+  'motion-move': 'bg-blue-500 bg-opacity-90',
+  'motion-turn-clockwise': 'bg-blue-600 bg-opacity-90',
+  'motion-turn-counterclockwise': 'bg-blue-700 bg-opacity-90',
+  'motion-goto': 'bg-blue-800 bg-opacity-90',
+  'control-forever': 'bg-green-500 bg-opacity-90',
+};
+
+// ScriptArea component to display and manage sprite scripts
+function ScriptArea({ sprite, updateSprite, deleteScript }) {
+  // If no sprite is provided, don't render anything
+  if (!sprite) return null;
+
+  // Handle input changes for script parameters
+  const handleInputChange = (scriptId, paramName, value) => {
+    updateSprite(sprite.id, {
+      scripts: sprite.scripts.map(script =>
+        script.id === scriptId
+          ? { ...script, params: { ...script.params, [paramName]: Number(value) } }
+          : script
+      )
+    });
   };
 
-  const deleteScript = (scriptId) => {
-    const updatedScripts = sprite.scripts.filter(script => script.id !== scriptId);
-    updateSprite(sprite.id, { scripts: updatedScripts });
+  // Handle script deletion
+  const handleDeleteScript = (scriptId) => {
+    deleteScript(sprite.id, scriptId);
   };
 
-  const renderScriptBlock = (script) => {
-    switch (script.type) {
-      case 'motion-move':
-        return (
+  // Render individual script block
+  const renderScript = (script, index) => (
+    <Draggable key={script.id} draggableId={script.id.toString()} index={index}>
+      {(provided) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          className={`mb-3 p-4 ${blockColors[script.type] || 'bg-gray-500'} text-white rounded-lg shadow-lg relative transition-transform transform hover:scale-105 hover:shadow-2xl`}
+        >
           <div className="flex items-center">
-            <span>move</span>
-            <input
-              type="number"
-              value={script.params.steps}
-              onChange={(e) => updateScriptParams(script.id, { steps: parseInt(e.target.value) || 0 })}
-              className="w-16 mx-1 p-1 border rounded text-black"
-            />
-            <span>steps</span>
+            {/* Render different content based on script type */}
+            {script.type === 'control-forever' && <span className="font-bold mr-2">Forever</span>}
+            {script.type === 'motion-move' && (
+              <>
+                <span className="font-semibold">Move</span>
+                <input
+                  type="number"
+                  value={script.params.steps}
+                  onChange={(e) => handleInputChange(script.id, 'steps', e.target.value)}
+                  className="ml-2 w-16 text-black px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-400"
+                />
+                <span className="ml-2">steps</span>
+              </>
+            )}
+            {script.type === 'motion-turn-clockwise' && (
+              <>
+                <span className="font-semibold">Turn</span>
+                <input
+                  type="number"
+                  value={script.params.degrees}
+                  onChange={(e) => handleInputChange(script.id, 'degrees', e.target.value)}
+                  className="ml-2 w-16 text-black px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-400"
+                />
+                <span className="ml-2">degrees clockwise</span>
+              </>
+            )}
+            {script.type === 'motion-turn-counterclockwise' && (
+              <>
+                <span className="font-semibold">Turn</span>
+                <input
+                  type="number"
+                  value={script.params.degrees}
+                  onChange={(e) => handleInputChange(script.id, 'degrees', e.target.value)}
+                  className="ml-2 w-16 text-black px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-400"
+                />
+                <span className="ml-2">degrees counter-clockwise</span>
+              </>
+            )}
+            {script.type === 'motion-goto' && (
+              <>
+                <span className="font-semibold">Go to x:</span>
+                <input
+                  type="number"
+                  value={script.params.x}
+                  onChange={(e) => handleInputChange(script.id, 'x', e.target.value)}
+                  className="ml-2 w-16 text-black px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-400"
+                />
+                <span className="ml-2">y:</span>
+                <input
+                  type="number"
+                  value={script.params.y}
+                  onChange={(e) => handleInputChange(script.id, 'y', e.target.value)}
+                  className="ml-2 w-16 text-black px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-400"
+                />
+              </>
+            )}
           </div>
-        );
-      case 'motion-turn-clockwise':
-        return (
-          <div className="flex items-center">
-            <span>turn ↻</span>
-            <input
-              type="number"
-              value={script.params.degrees}
-              onChange={(e) => updateScriptParams(script.id, { degrees: parseInt(e.target.value) || 0 })}
-              className="w-16 mx-1 p-1 border rounded text-black"
-            />
-            <span>degrees</span>
-          </div>
-        );
-      case 'motion-turn-counterclockwise':
-        return (
-          <div className="flex items-center">
-            <span>turn ↺</span>
-            <input
-              type="number"
-              value={script.params.degrees}
-              onChange={(e) => updateScriptParams(script.id, { degrees: parseInt(e.target.value) || 0 })}
-              className="w-16 mx-1 p-1 border rounded text-black"
-            />
-            <span>degrees</span>
-          </div>
-        );
-      case 'motion-goto':
-        return (
-          <div className="flex items-center">
-            <span>go to x:</span>
-            <input
-              type="number"
-              value={script.params.x}
-              onChange={(e) => updateScriptParams(script.id, { x: parseInt(e.target.value) || 0 })}
-              className="w-16 mx-1 p-1 border rounded text-black"
-            />
-            <span>y:</span>
-            <input
-              type="number"
-              value={script.params.y}
-              onChange={(e) => updateScriptParams(script.id, { y: parseInt(e.target.value) || 0 })}
-              className="w-16 mx-1 p-1 border rounded text-black"
-            />
-          </div>
-        );
-      default:
-        return <div>{script.type}</div>;
-    }
-  };
+          {/* Delete button for script */}
+          <button
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteScript(script.id);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </Draggable>
+  );
 
   return (
-    <div className="flex-1 bg-white p-4 overflow-auto">
-      <h2 className="text-xl font-bold mb-4">Scripts for {sprite.name}</h2>
+    <div className="p-6 bg-white border-2 border-gray-300 shadow-inner h-full overflow-y-auto rounded-lg">
+      <h2 className="text-xl font-bold mb-4 text-gray-900">{sprite.name} Scripts</h2>
+      {/* Droppable area for scripts */}
       <Droppable droppableId="script-area">
-        {(provided) => (
-          <div
-            {...provided.droppableProps}
+        {(provided, snapshot) => (
+          <div 
+            {...provided.droppableProps} 
             ref={provided.innerRef}
-            className="min-h-full p-4 border-2 border-dashed border-gray-300 rounded"
+            style={{
+              minHeight: '200px',
+              backgroundColor: snapshot.isDraggingOver ? '#E3F2FD' : '#F5F5F5',
+              transition: 'background-color 0.2s ease',
+            }}
+            className="p-4 rounded-lg shadow-sm"
           >
-            {sprite.scripts.map((script, index) => (
-              <Draggable key={script.id} draggableId={`script-${script.id}`} index={index}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className="p-2 mb-2 bg-blue-500 text-white rounded cursor-move flex justify-between items-center"
-                    onDragStart={() => executeScript(sprite.id, script)}
-                  >
-                    <div className="flex-1">
-                      {renderScriptBlock(script)}
-                    </div>
-                    <button
-                      onClick={() => deleteScript(script.id)}
-                      className="ml-2 bg-red-500 text-white p-1 rounded hover:bg-red-600"
-                    >
-                      X
-                    </button>
-                  </div>
-                )}
-              </Draggable>
-            ))}
+            {/* Render all scripts for the sprite */}
+            {sprite.scripts.map((script, index) => renderScript(script, index))}
             {provided.placeholder}
           </div>
         )}
       </Droppable>
     </div>
   );
-};
+}
 
 export default ScriptArea;

@@ -1,0 +1,26 @@
+/* Import Tailwind CSS base styles */
+@import 'tailwindcss/base';
+/* Import Tailwind CSS component styles */
+@import 'tailwindcss/components';
+/* Import Tailwind CSS utility styles */
+@import 'tailwindcss/utilities';
+
+/* Global styles for the body element */
+body {
+  margin: 0;
+  /* Set default font family for the entire document */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  /* Improve font rendering on webkit browsers */
+  -webkit-font-smoothing: antialiased;
+  /* Improve font rendering on macOS Firefox */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Styles for code elements */
+code {
+  /* Set monospace font family for code blocks */
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}

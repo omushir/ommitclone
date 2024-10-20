@@ -1,9 +1,14 @@
+/* Styles for the character element */
 .character {
+  /* Apply smooth transitions to various properties */
   transition: width 2s, height 2s, background-color 2s, transform 2s,
     position 2s, left 2s, right 2s, scale 2s, top 2s;
 }
 
+/* Styles for the cat icon */
 .cat-icon {
+  /* Ensure the icon appears above other elements */
   z-index: 10;
+  /* Prevent the icon from receiving pointer events */
   pointer-events: none;
 }
