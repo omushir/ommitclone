@@ -1,4 +1,3 @@
-
 // Import necessary dependencies
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { DragDropContext } from 'react-beautiful-dnd';
@@ -20,6 +19,30 @@ const initialSpritePositions = {
   // Add more initial positions for other sprites
 };
 
+// Add error boundary
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.log('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong.</h1>;
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   // State for sprites and selected sprite ID
   const [sprites, setSprites] = useState([
@@ -40,6 +63,9 @@ function App() {
   // Refs for managing intervals and running state
   const intervalsRef = useRef({});
   const isRunningRef = useRef(false);
+
+  // Add error state
+  const [error, setError] = useState(null);
 
   // Function to check collision between two sprites
   const checkCollision = (sprite1, sprite2) => {
@@ -188,18 +214,23 @@ function App() {
 
   // Function to handle the "Go" (green flag) action
   const handleGreenFlag = useCallback(() => {
-    stopAllScripts();
-    isRunningRef.current = true;
-    setSprites(prevSprites => 
-      prevSprites.map(sprite => {
-        if (sprite.scripts.some(script => script.type === 'control-forever')) {
-          startForeverExecution(sprite.id);
-          return sprite;
-        } else {
-          return executeAllScripts(sprite, prevSprites);
-        }
-      })
-    );
+    try {
+      stopAllScripts();
+      isRunningRef.current = true;
+      setSprites(prevSprites => 
+        prevSprites.map(sprite => {
+          if (sprite.scripts.some(script => script.type === 'control-forever')) {
+            startForeverExecution(sprite.id);
+            return sprite;
+          } else {
+            return executeAllScripts(sprite, prevSprites);
+          }
+        })
+      );
+    } catch (err) {
+      console.error('Error in handleGreenFlag:', err);
+      setError(err.message);
+    }
   }, [executeAllScripts, startForeverExecution, stopAllScripts]);
 
   // Function to add a new script to a sprite
@@ -354,8 +385,9 @@ function App() {
   // ... (rest of the component remains unchanged)
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex h-screen bg-gray-100">
+    <ErrorBoundary>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex h-screen bg-gray-100">
   <BlockPalette />
   <div className="flex-1 flex flex-col">
     <div className="p-4 bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400 flex justify-between items-center border-b-2 border-gray-400 shadow-md">
@@ -407,8 +439,9 @@ function App() {
             />
           </div>
         </div>
-      </div>
-    </DragDropContext>
+        {error && <div className="error-message">{error}</div>}
+      </DragDropContext>
+    </ErrorBoundary>
   );
 }
 
